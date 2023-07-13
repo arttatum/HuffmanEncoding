@@ -1,142 +1,186 @@
 use bitvec::prelude::*;
 use std::borrow::BorrowMut;
 use std::collections::{BinaryHeap, HashMap};
-use std::io::{self, Read};
+use std::fs;
+use std::io::BufRead;
 
 fn main() {
-    println!("Computing frequency of bytes...");
-    let mut counts = HashMap::new();
-    let mut line = String::new();
-    let mut input = String::new();
-    while let Ok(n_bytes) = io::stdin().lock().read_to_string(&mut line) {
-        if n_bytes == 0 {
-            break;
+    let provider = TextProvider::from_stdin();
+    let huffman_tree = HuffmanTree::from_frequencies(provider.get_frequencies());
+    let encoder = HuffmanEncoder::from_huffman_tree(huffman_tree);
+
+    let encoded_string = encoder.encode(provider.get_text());
+    let decoded_string = encoder.decode(&encoded_string);
+
+    let encoded_text_size = encoded_string.len() / 8 + {
+        if encoded_string.len() % 8 == 0 {
+            0
+        } else {
+            1
         }
-        for c in line.as_bytes() {
-            if let Some(value) = counts.get_mut(c) {
-                *value += 1;
-            } else {
-                counts.insert(*c, 1);
+    };
+
+    println!("Encoded text consumes {} bytes", encoded_text_size);
+
+    println!("Decoded text consumes {} bytes", decoded_string.len());
+
+    println!(
+        "Compression ratio: {}%",
+        encoded_text_size * 100 / decoded_string.len()
+    );
+
+    fs::write("/tmp/huffmanEncoded.txt", decoded_string).unwrap();
+}
+
+struct TextProvider<TokenType> {
+    text: String,
+    frequencies: HashMap<TokenType, u32>,
+}
+
+impl TextProvider<char> {
+    fn from_stdin() -> Self {
+        println!("Getting text and counts from stdin");
+        let mut frequencies = HashMap::new();
+        let mut line = String::new();
+        let mut text = String::new();
+        while let Ok(n_bytes) = std::io::stdin().lock().read_line(&mut line) {
+            if n_bytes == 0 {
+                break;
+            }
+            for c in line.chars().into_iter() {
+                frequencies
+                    .entry(c)
+                    .and_modify(|value| *value += 1)
+                    .or_insert(1);
+                text.push(c);
+            }
+            line.clear();
+        }
+        TextProvider { text, frequencies }
+    }
+
+    fn get_text(&self) -> &str {
+        &self.text
+    }
+
+    fn get_frequencies(&self) -> &HashMap<char, u32> {
+        &self.frequencies
+    }
+}
+
+#[derive(Clone)]
+struct HuffmanEncoder {
+    encoder: HashMap<char, BitVec>,
+    decoder: HashMap<BitVec, char>,
+}
+
+impl HuffmanEncoder {
+    fn from_huffman_tree(tree: Box<HuffmanTree>) -> Self {
+        println!("Generating encoder and decoder from tree");
+        let mut encoder = HashMap::new();
+        let mut decoder = HashMap::new();
+        HuffmanEncoder::get_encoding_from_node(
+            tree,
+            &mut BitVec::new(),
+            encoder.borrow_mut(),
+            decoder.borrow_mut(),
+        );
+        HuffmanEncoder { encoder, decoder }
+    }
+
+    fn get_encoding_from_node(
+        current_node: Box<HuffmanTree>,
+        encoding: &mut BitVec,
+        encoder: &mut HashMap<char, BitVec>,
+        decoder: &mut HashMap<BitVec, char>,
+    ) {
+        if let Some(letter) = current_node.token {
+            encoder.insert(letter, encoding.clone());
+            decoder.insert(encoding.clone(), letter);
+        } else {
+            if let Some(left_child) = current_node.left {
+                encoding.push(false);
+                HuffmanEncoder::get_encoding_from_node(left_child, encoding, encoder, decoder);
+                encoding.pop();
+            }
+
+            if let Some(right_child) = current_node.right {
+                encoding.push(true);
+                HuffmanEncoder::get_encoding_from_node(right_child, encoding, encoder, decoder);
+                encoding.pop();
             }
         }
-        input.push_str(&line);
-        line.clear();
     }
 
-    let mut heap = BinaryHeap::new();
-
-    for (key, value) in counts.iter() {
-        heap.push(Box::new(HuffmanTreeNode {
-            letter: Some(*key),
-            count: value.clone(),
-            left: None,
-            right: None,
-        }));
-    }
-
-    println!("Building a Huffman Tree to {{en,de}}code the given text...");
-    println!("The algorithm to build the Huffman Tree is as follows:");
-    println!("\t1) From the MinHeap, pop the nodes corresponding to the least frequently occurring letters.");
-    println!("\t2) Create a new node, with a value equal to the sum of the two child nodes.");
-    println!("\t3) Reference the child nodes from the new node, with a consistent ordering (e.g. left = smaller).");
-    println!("\t4) Push the new node onto the MinHeap.");
-    println!("\t5) Repeat 1-4, until there is only one node left in the MinHeap.");
-    println!("The remaining node in the heap is the root of the HuffmanTree.");
-
-    while heap.len() > 1 {
-        let smaller_node = heap.pop().unwrap();
-        let larger_node = heap.pop().unwrap();
-        heap.push(merge_nodes(smaller_node, larger_node));
-    }
-
-    let mut encodings = HashMap::new();
-    let mut decoding_map = HashMap::new();
-
-    // Traverse tree to form mapping from bytes to encodings
-    get_coding_from_tree(heap.pop().unwrap(), &mut BitVec::new(), encodings.borrow_mut(), decoding_map.borrow_mut());
-
-    
-    println!("Given these encodings, we can encode the original text");
-
-
-    let encoded_string = encode_string(&mut encodings, &input);
-    println!("{}", encoded_string);
-
-    let decoded_string = decode_string(&encoded_string, &decoding_map);
-
-    println!("{}", decoded_string);
-}
-
-fn decode_string(input: &BitVec, decoding_map: &HashMap<BitVec, u8>) -> String {
-    let mut output = String::new();
-    let mut candidate = BitVec::new();
-    for b in input {
-        candidate.push(*b);
-        if let Some(entry) = decoding_map.get(&candidate) {
-            output.push(char::try_from(*entry).unwrap());
-            candidate = BitVec::new();
-        } 
-    }
-    return output;
-}
-
-fn encode_string(encodings: &mut HashMap<u8, BitVec>, input: &str) -> BitVec {
-    let mut output = BitVec::new();
-    for b in input.as_bytes().iter() {
-        let encoding = encodings.entry(*b).or_default();
-        for bb in encoding {
-            output.push(*bb);
+    fn decode(&self, input: &BitVec) -> String {
+        println!("Decoding text");
+        let mut output = String::new();
+        let mut candidate = BitVec::new();
+        for b in input {
+            candidate.push(*b);
+            if let Some(entry) = self.decoder.get(&candidate) {
+                output.push(char::try_from(*entry).unwrap());
+                candidate = BitVec::new();
+            }
         }
+        return output;
     }
-    return output;
-}
 
-fn get_coding_from_tree(
-    tree: Box<HuffmanTreeNode>,
-    encoding: &mut BitVec,
-    encodings: &mut HashMap<u8, BitVec>,
-    decoding_map: &mut HashMap<BitVec, u8>,
-) {
-    if let Some(letter) = tree.letter {
-        encodings.insert(letter, encoding.clone());
-        decoding_map.insert(encoding.clone(), letter);
-    } else {
-        if let Some(left_child) = tree.left {
-            encoding.push(false);
-            get_coding_from_tree(left_child, encoding, encodings, decoding_map);
-            encoding.pop();
+    fn encode(&self, input: &str) -> BitVec {
+        println!("Encoding text");
+        let mut output = BitVec::new();
+        for b in input.chars().into_iter() {
+            if let Some(encoding) = self.encoder.get(&b) {
+                for bb in encoding {
+                    output.push(*bb);
+                }
+            }
         }
-
-        if let Some(right_child) = tree.right {
-            encoding.push(true);
-            get_coding_from_tree(right_child, encoding, encodings, decoding_map);
-            encoding.pop();
-        }
+        return output;
     }
 }
 
-struct HuffmanTreeNode {
-    letter: Option<u8>,
+struct HuffmanTree {
+    token: Option<char>,
     count: u32,
-    left: Option<Box<HuffmanTreeNode>>,
-    right: Option<Box<HuffmanTreeNode>>,
+    left: Option<Box<HuffmanTree>>,
+    right: Option<Box<HuffmanTree>>,
 }
 
-fn merge_nodes(
-    smaller_node: Box<HuffmanTreeNode>,
-    larger_node: Box<HuffmanTreeNode>,
-) -> Box<HuffmanTreeNode> {
-    Box::new(HuffmanTreeNode {
-        letter: None,
+impl HuffmanTree {
+    fn from_frequencies(counts: &HashMap<char, u32>) -> Box<HuffmanTree> {
+        println!("Building Huffman Tree from frequency map");
+        let mut heap = BinaryHeap::new();
+        for (key, value) in counts.iter() {
+            heap.push(Box::new(HuffmanTree {
+                token: Some(*key),
+                count: value.clone(),
+                left: None,
+                right: None,
+            }));
+        }
+
+        while heap.len() > 1 {
+            let smaller_node = heap.pop().unwrap();
+            let larger_node = heap.pop().unwrap();
+            heap.push(merge_nodes(smaller_node, larger_node));
+        }
+        heap.pop().unwrap()
+    }
+}
+
+fn merge_nodes(smaller_node: Box<HuffmanTree>, larger_node: Box<HuffmanTree>) -> Box<HuffmanTree> {
+    Box::new(HuffmanTree {
+        token: None,
         count: smaller_node.count + larger_node.count,
         left: Some(smaller_node),
         right: Some(larger_node),
     })
 }
 
-impl Eq for HuffmanTreeNode {}
+impl Eq for HuffmanTree {}
 
-impl PartialEq for HuffmanTreeNode {
+impl PartialEq for HuffmanTree {
     fn eq(&self, other: &Self) -> bool {
         self.count == other.count
     }
@@ -148,13 +192,13 @@ impl PartialEq for HuffmanTreeNode {
 //
 // An alternative approach would be to use Reverse on each node, prior to insertion into the
 // MaxHeap.
-impl PartialOrd for HuffmanTreeNode {
+impl PartialOrd for HuffmanTree {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         other.count.partial_cmp(&self.count)
     }
 }
 
-impl Ord for HuffmanTreeNode {
+impl Ord for HuffmanTree {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         other.partial_cmp(self).unwrap()
     }
