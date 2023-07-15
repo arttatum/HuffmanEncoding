@@ -3,7 +3,8 @@ mod application;
 mod encoding;
 
 use application::input::TextProvider;
-use encoding::huffman::{Encoder, Tree};
+use crate::encoding::huffman::tree::Tree;
+use crate::encoding::huffman::encoder::Encoder;
 
 fn main() {
     let provider = TextProvider::from_stdin();
