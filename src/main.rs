@@ -7,15 +7,18 @@ use encoding::huffman::{Encoder, Tree};
 
 fn main() {
     let provider = TextProvider::from_stdin();
+    
     let huffman_tree = Tree::from_frequencies(provider.get_frequencies());
 
     let encoder = Encoder::from_huffman_tree(huffman_tree);
 
-    let encoded_string = encoder.encode(provider.get_text());
-    let decoded_string = encoder.decode(&encoded_string);
+    let encoded_text = encoder.encode(provider.get_text());
 
-    let encoded_text_size = encoded_string.len() / 8 + {
-        if encoded_string.len() % 8 == 0 {
+    let decoded_text = encoder.decode(&encoded_text);
+
+
+    let encoded_text_size = encoded_text.len() / 8 + {
+        if encoded_text.len() % 8 == 0 {
             0
         } else {
             1
@@ -24,12 +27,12 @@ fn main() {
     println!("Original text consumes {} bytes", provider.get_text().len());
     println!("Encoded text consumes {} bytes", encoded_text_size);
 
-    println!("Decoded text consumes {} bytes", decoded_string.len());
+    println!("Decoded text consumes {} bytes", decoded_text.len());
 
     println!(
         "Compression ratio: {}%",
-        encoded_text_size * 100 / decoded_string.len()
+        encoded_text_size * 100 / decoded_text.len()
     );
 
-    fs::write("/tmp/huffmanEncoded.txt", decoded_string).unwrap();
+    fs::write("/tmp/huffmanEncoded.txt", decoded_text).unwrap();
 }

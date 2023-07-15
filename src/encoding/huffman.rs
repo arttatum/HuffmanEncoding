@@ -5,9 +5,16 @@ use std::collections::{BinaryHeap, HashMap};
 use std::hash::Hash;
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Tree<TokenType: Clone> {
-    Leaf(Leaf<TokenType>),
-    InternalNode(InternalNode<TokenType>),
+pub enum Tree<T: Clone> {
+    Leaf {
+        token: T,
+        count: u32,
+    },
+    InternalNode {
+        count: u32,
+        left: Box<Tree<T>>,
+        right: Box<Tree<T>>,
+    },
 }
 
 impl<T: Clone + Eq> Ord for Tree<T> {
@@ -22,77 +29,59 @@ impl<T: Clone + Eq> PartialOrd for Tree<T> {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
-pub struct Leaf<TokenType> {
-    pub token: TokenType,
-    pub count: u32,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub struct InternalNode<TokenType: Clone> {
-    count: u32,
-    pub left: Box<Tree<TokenType>>,
-    pub right: Box<Tree<TokenType>>,
-}
-
-impl<TokenType: Clone + Eq> Tree<TokenType> {
-    pub fn from_frequencies(counts: &HashMap<TokenType, u32>) -> Box<Tree<TokenType>> {
-        println!("Building Huffman Tree from frequency map");
+impl<T: Clone + Eq> Tree<T> {
+    pub fn from_frequencies(counts: &HashMap<T, u32>) -> Box<Tree<T>> {
+        println!("Building Huffman Tree using token frequency map");
         let mut heap = BinaryHeap::new();
         for (key, value) in counts.iter() {
-            heap.push(Box::new(Tree::Leaf(Leaf {
+            heap.push(Box::new(Tree::Leaf {
                 token: key.clone(),
                 count: value.clone(),
-            })));
+            }));
         }
 
         while heap.len() > 1 {
             let smaller_node = heap.pop().unwrap();
             let larger_node = heap.pop().unwrap();
-            heap.push(merge_nodes(smaller_node, larger_node));
+            let parent_node = Box::new(Tree::InternalNode {
+                count: (*smaller_node).get_count() + (*larger_node).get_count(),
+                left: smaller_node,
+                right: larger_node,
+            });
+            heap.push(parent_node);
         }
+
         heap.pop().unwrap()
     }
 
     fn get_count(&self) -> u32 {
         match self {
-            Tree::Leaf(leaf) => leaf.count,
-            Tree::InternalNode(node) => node.count,
+            Tree::Leaf { count, .. } => *count,
+            Tree::InternalNode { count, .. } => *count,
         }
     }
 }
 
-fn merge_nodes<TokenType: Clone + Eq>(
-    smaller_node: Box<Tree<TokenType>>,
-    larger_node: Box<Tree<TokenType>>,
-) -> Box<Tree<TokenType>> {
-    Box::new(Tree::InternalNode(InternalNode {
-        count: (*smaller_node).get_count() + (*larger_node).get_count(),
-        left: smaller_node,
-        right: larger_node,
-    }))
-}
-
 #[derive(Clone)]
-pub struct Encoder<TokenType>
+pub struct Encoder<T>
 where
-    TokenType: Hash,
-    TokenType: Eq,
-    TokenType: PartialEq,
+    T: Hash,
+    T: Eq,
+    T: PartialEq,
 {
-    encoder: HashMap<TokenType, BitVec>,
-    decoder: HashMap<BitVec, TokenType>,
+    encoder: HashMap<T, BitVec>,
+    decoder: HashMap<BitVec, T>,
 }
 
-impl<TokenType> Encoder<TokenType>
+impl<T> Encoder<T>
 where
-    TokenType: Hash,
-    TokenType: Eq,
-    TokenType: PartialEq,
-    TokenType: Clone,
-    TokenType: Display,
+    T: Hash,
+    T: Eq,
+    T: PartialEq,
+    T: Clone,
+    T: Display,
 {
-    pub fn from_huffman_tree(tree: Box<Tree<TokenType>>) -> Self {
+    pub fn from_huffman_tree(tree: Box<Tree<T>>) -> Self {
         println!("Generating encoder and decoder from tree");
         let mut encoder = HashMap::new();
         let mut decoder = HashMap::new();
@@ -112,24 +101,24 @@ where
     }
 
     fn get_encoding_from_node(
-        current_node: Box<Tree<TokenType>>,
+        current_node: Box<Tree<T>>,
         encoding: BitVec,
-        encoder: &mut HashMap<TokenType, BitVec>,
-        decoder: &mut HashMap<BitVec, TokenType>,
+        encoder: &mut HashMap<T, BitVec>,
+        decoder: &mut HashMap<BitVec, T>,
     ) {
         match *current_node {
-            Tree::Leaf(leaf) => {
-                encoder.insert(leaf.token.clone(), encoding.clone());
-                decoder.insert(encoding.clone(), leaf.token.clone());
+            Tree::Leaf { token, .. } => {
+                encoder.insert(token.clone(), encoding.clone());
+                decoder.insert(encoding.clone(), token.clone());
             }
-            Tree::InternalNode(node) => {
+            Tree::InternalNode { left, right, .. } => {
                 let mut left_encoding = encoding.clone();
                 left_encoding.push(false);
-                Encoder::get_encoding_from_node(node.left, left_encoding, encoder, decoder);
+                Encoder::get_encoding_from_node(left, left_encoding, encoder, decoder);
 
                 let mut right_encoding = encoding.clone();
                 right_encoding.push(true);
-                Encoder::get_encoding_from_node(node.right, right_encoding, encoder, decoder);
+                Encoder::get_encoding_from_node(right, right_encoding, encoder, decoder);
             }
         }
     }

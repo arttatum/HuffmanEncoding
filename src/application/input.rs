@@ -7,7 +7,7 @@ pub struct TextProvider<TokenType> {
 
 impl TextProvider<char> {
     pub fn from_stdin() -> Self {
-        println!("Getting text and counts from stdin");
+        println!("Reading text from stdin into memory and computing character frequency.");
         let mut frequencies = HashMap::new();
         let mut line = String::new();
         let mut text = String::new();
