@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 use std::io::BufRead;
 pub struct TextProvider<TokenType> {

@@ -35,7 +35,6 @@ pub struct InternalNode<TokenType: Clone> {
     pub right: Box<Tree<TokenType>>,
 }
 
-
 impl<TokenType: Clone + Eq> Tree<TokenType> {
     pub fn from_frequencies(counts: &HashMap<TokenType, u32>) -> Box<Tree<TokenType>> {
         println!("Building Huffman Tree from frequency map");
@@ -91,7 +90,7 @@ where
     TokenType: Eq,
     TokenType: PartialEq,
     TokenType: Clone,
-    TokenType: Display
+    TokenType: Display,
 {
     pub fn from_huffman_tree(tree: Box<Tree<TokenType>>) -> Self {
         println!("Generating encoder and decoder from tree");
@@ -104,7 +103,7 @@ where
             decoder.borrow_mut(),
         );
         let mut sorted_encoder: Vec<_> = encoder.iter().collect();
-        sorted_encoder.sort_by(|a, b| a.1.cmp(b.1)); 
+        sorted_encoder.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
 
         for (c, f) in sorted_encoder.iter() {
             println!("Encoder: {}: {}", c, f);

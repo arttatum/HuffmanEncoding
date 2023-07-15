@@ -1,10 +1,9 @@
 use std::fs;
-use std::fmt::Display;
-mod encoding;
 mod application;
+mod encoding;
 
-use encoding::huffman::{Tree, Encoder};
 use application::input::TextProvider;
+use encoding::huffman::{Encoder, Tree};
 
 fn main() {
     let provider = TextProvider::from_stdin();
@@ -33,17 +32,4 @@ fn main() {
     );
 
     fs::write("/tmp/huffmanEncoded.txt", decoded_string).unwrap();
-}
-
-
-fn walk<T: Copy + Display>(tree: Box<Tree<T>>) { 
-    match *tree {
-        Tree::Leaf(leaf) => println!("Found a leaf, representing {} {}'s", leaf.count, leaf.token),
-        Tree::InternalNode(node) => {
-            println!("Walking left");
-            walk(node.left);
-            println!("Walking right");
-            walk(node.right);
-        }
-    }
 }
