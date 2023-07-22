@@ -95,3 +95,46 @@ impl HuffmanEncoder<char> {
         return output;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_tree() -> Box<HuffmanTree<char>> {
+        let counts = HashMap::from([('a', 10), ('!', 38), ('😆', 12)]);
+        HuffmanTree::from_frequencies(&counts)
+    }
+
+    #[test]
+    fn test_from_huffman_tree() {
+        let encoder = HuffmanEncoder::from_huffman_tree(create_tree());
+
+        let expected_bits_for_a = bitvec![0, 0];
+        let expected_bits_for_exclaim = bitvec![1];
+        let expected_bits_for_lols = bitvec![0, 1];
+
+        let bits_for_a = encoder.encoder.get(&'a').unwrap();
+        assert_eq!(bits_for_a.len(), 2);
+        assert_eq!(bits_for_a[0], expected_bits_for_a[0]);
+        assert_eq!(bits_for_a[1], expected_bits_for_a[1]);
+        assert_eq!(encoder.decoder.get(bits_for_a).unwrap(), &'a');
+
+        let bits_for_exclaim = encoder.encoder.get(&'!').unwrap();
+        assert_eq!(bits_for_exclaim.len(), 1);
+        assert_eq!(bits_for_exclaim[0], expected_bits_for_exclaim[0]);
+        assert_eq!(encoder.decoder.get(bits_for_exclaim).unwrap(), &'!');
+
+        let bits_for_lols = encoder.encoder.get(&'😆').unwrap();
+        assert_eq!(bits_for_lols.len(), 2);
+        assert_eq!(bits_for_lols[0], expected_bits_for_lols[0]);
+        assert_eq!(bits_for_lols[1], expected_bits_for_lols[1]);
+        assert_eq!(encoder.decoder.get(bits_for_lols).unwrap(), &'😆');
+    }
+
+    #[test]
+    fn test_encode_decode_returns_original_input() {
+        let encoder = HuffmanEncoder::from_huffman_tree(create_tree());
+        let input = "!!!!!!!!!!😆!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!!!!!!!!!!";
+        assert_eq!(input, encoder.decode(&encoder.encode(input)));
+    }
+}
