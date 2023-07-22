@@ -1,4 +1,7 @@
-use std::collections::{BinaryHeap, HashMap};
+use std::{
+    collections::{BinaryHeap, HashMap},
+    hash::Hash,
+};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum HuffmanTree<T: Clone> {
@@ -54,6 +57,78 @@ impl<T: Clone + Eq> HuffmanTree<T> {
         match self {
             HuffmanTree::Leaf { count, .. } => *count,
             HuffmanTree::InternalNode { count, .. } => *count,
+        }
+    }
+}
+
+#[test]
+fn test_from_frequencies() {
+    let lyrics = "Hi, my name is, what? My name is, who?
+                        My name is, chka-chka, Slim Shady
+                        Hi, my name is, huh? My name is, what?
+                        My name is, chka-chka, Slim Shady";
+
+    let counts = lyrics.chars().fold(HashMap::new(), |mut map, c| {
+        *map.entry(c).or_insert(0) += 1;
+        map
+    });
+
+    let tree = HuffmanTree::from_frequencies(&counts);
+    assert_eq!(tree.get_count(), u32::try_from(lyrics.len()).unwrap())
+}
+
+#[test]
+fn test_char_leaves_have_correct_count() {
+    let lyrics = "Hi, my name is, what? My name is, who?
+                        My name is, chka-chka, Slim Shady
+                        Hi, my name is, huh? My name is, what?
+                        My name is, chka-chka, Slim Shady";
+
+    let counts = lyrics.chars().fold(HashMap::new(), |mut map, c| {
+        *map.entry(c).or_insert(0) += 1;
+        map
+    });
+
+    let tree = HuffmanTree::from_frequencies(&counts);
+
+    assert_eq!(tree.get_count(), u32::try_from(lyrics.len()).unwrap());
+
+    check_leaves(tree, counts);
+}
+
+#[test]
+fn test_str_leaves_have_correct_count() {
+    let lyrics = "Hi, my name is, what? My name is, who?
+My name is, chka-chka, Slim Shady
+Hi, my name is, huh? My name is, what?
+My name is, chka-chka, Slim Shady";
+
+    let counts = lyrics
+        .split_inclusive(' ')
+        .fold(HashMap::new(), |mut map, c| {
+            *map.entry(c).or_insert(0) += 1;
+            map
+        });
+
+    let tree = HuffmanTree::from_frequencies(&counts);
+
+    assert_eq!(tree.get_count(), 27);
+
+    check_leaves(tree, counts);
+}
+
+#[allow(dead_code)]
+fn check_leaves<T>(tree: Box<HuffmanTree<T>>, counts: HashMap<T, u32>)
+where
+    T: Clone + Eq + Hash,
+{
+    match *tree {
+        HuffmanTree::Leaf { count, token } => {
+            assert_eq!(count, *counts.get(&token).unwrap())
+        }
+        HuffmanTree::InternalNode { left, right, .. } => {
+            check_leaves(left, counts.clone());
+            check_leaves(right, counts.clone());
         }
     }
 }
