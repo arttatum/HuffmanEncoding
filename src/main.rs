@@ -4,16 +4,16 @@ mod application;
 mod encoding;
 
 use application::input::Input;
-use encoding::huffman::{Encoder, Tree};
+use encoding::{HuffmanEncoder, HuffmanTree};
 
 fn main() {
     let mut input = Input::from_source(std::io::stdin().lock());
 
     let summary = input.process_as_chars();
 
-    let huffman_tree = Tree::from_frequencies(&summary.frequencies);
+    let huffman_tree = HuffmanTree::from_frequencies(&summary.frequencies);
 
-    let encoder = Encoder::from_huffman_tree(huffman_tree);
+    let encoder = HuffmanEncoder::from_huffman_tree(huffman_tree);
 
     let encoded_text = encoder.encode(&summary.text);
 

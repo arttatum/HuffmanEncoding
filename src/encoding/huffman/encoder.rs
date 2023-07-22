@@ -1,12 +1,12 @@
+use crate::encoding::huffman::tree::HuffmanTree;
 use bitvec::prelude::*;
 use core::fmt::Display;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::hash::Hash;
-use crate::encoding::huffman::tree::Tree;
 
 #[derive(Clone)]
-pub struct Encoder<T>
+pub struct HuffmanEncoder<T>
 where
     T: Hash,
     T: Eq,
@@ -16,7 +16,7 @@ where
     decoder: HashMap<BitVec, T>,
 }
 
-impl<T> Encoder<T>
+impl<T> HuffmanEncoder<T>
 where
     T: Hash,
     T: Eq,
@@ -24,11 +24,11 @@ where
     T: Clone,
     T: Display,
 {
-    pub fn from_huffman_tree(tree: Box<Tree<T>>) -> Self {
+    pub fn from_huffman_tree(tree: Box<HuffmanTree<T>>) -> Self {
         println!("Generating encoder and decoder from tree");
         let mut encoder = HashMap::new();
         let mut decoder = HashMap::new();
-        Encoder::get_encoding_from_node(
+        HuffmanEncoder::get_encoding_from_node(
             tree,
             BitVec::new(),
             encoder.borrow_mut(),
@@ -38,36 +38,36 @@ where
         sorted_encoder.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
 
         for (c, f) in sorted_encoder.iter() {
-            println!("Encoder: {}: {}", c, f);
+            println!("HuffmanEncoder: {}: {}", c, f);
         }
-        Encoder { encoder, decoder }
+        HuffmanEncoder { encoder, decoder }
     }
 
     fn get_encoding_from_node(
-        current_node: Box<Tree<T>>,
+        current_node: Box<HuffmanTree<T>>,
         encoding: BitVec,
         encoder: &mut HashMap<T, BitVec>,
         decoder: &mut HashMap<BitVec, T>,
     ) {
         match *current_node {
-            Tree::Leaf { token, .. } => {
+            HuffmanTree::Leaf { token, .. } => {
                 encoder.insert(token.clone(), encoding.clone());
                 decoder.insert(encoding.clone(), token.clone());
             }
-            Tree::InternalNode { left, right, .. } => {
+            HuffmanTree::InternalNode { left, right, .. } => {
                 let mut left_encoding = encoding.clone();
                 left_encoding.push(false);
-                Encoder::get_encoding_from_node(left, left_encoding, encoder, decoder);
+                HuffmanEncoder::get_encoding_from_node(left, left_encoding, encoder, decoder);
 
                 let mut right_encoding = encoding.clone();
                 right_encoding.push(true);
-                Encoder::get_encoding_from_node(right, right_encoding, encoder, decoder);
+                HuffmanEncoder::get_encoding_from_node(right, right_encoding, encoder, decoder);
             }
         }
     }
 }
 
-impl Encoder<char> {
+impl HuffmanEncoder<char> {
     pub fn decode(&self, input: &BitVec) -> String {
         println!("Decoding text");
         let mut output = String::new();
