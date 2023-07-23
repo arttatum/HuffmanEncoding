@@ -12,7 +12,7 @@ where
     T: Eq,
     T: PartialEq,
 {
-    encoder: HashMap<T, BitVec>,
+    pub encoder: HashMap<T, BitVec>,
     pub decoder: HashMap<BitVec, T>,
 }
 
@@ -25,7 +25,6 @@ where
     T: Display,
 {
     pub fn from_huffman_tree(tree: Box<HuffmanTree<T>>) -> Self {
-        println!("Generating encoder and decoder from tree");
         let mut encoder = HashMap::new();
         let mut decoder = HashMap::new();
         HuffmanEncoder::get_encoding_from_node(
@@ -34,12 +33,6 @@ where
             encoder.borrow_mut(),
             decoder.borrow_mut(),
         );
-        let mut sorted_encoder: Vec<_> = encoder.iter().collect();
-        sorted_encoder.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
-
-        for (c, f) in sorted_encoder.iter() {
-            println!("HuffmanEncoder: {}: {}", c, f);
-        }
         HuffmanEncoder { encoder, decoder }
     }
 
@@ -65,31 +58,32 @@ where
             }
         }
     }
-}
 
-impl HuffmanEncoder<char> {
-    pub fn decode(decoder: HashMap<BitVec, char>, input: &BitVec) -> String {
-        println!("Decoding text");
-        let mut output = String::new();
-        let mut candidate = BitVec::new();
-        for b in input {
-            candidate.push(*b);
-            if let Some(entry) = decoder.get(&candidate) {
-                output.push(char::try_from(*entry).unwrap());
-                candidate = BitVec::new();
-            }
-        }
-        return output;
-    }
-
-    pub fn encode(&self, input: &str) -> BitVec {
-        println!("Encoding text");
+    pub fn encode<I>(self, input_iter: I) -> BitVec
+    where
+        I: Iterator<Item = T>,
+    {
         let mut output = BitVec::new();
-        for b in input.chars().into_iter() {
+        for b in input_iter {
             if let Some(encoding) = self.encoder.get(&b) {
                 for bb in encoding {
                     output.push(*bb);
                 }
+            }
+        }
+        return output;
+    }
+}
+
+impl HuffmanEncoder<char> {
+    pub fn decode(decoder: HashMap<BitVec, char>, input: BitVec) -> String {
+        let mut output = String::new();
+        let mut candidate = BitVec::new();
+        for b in input {
+            candidate.push(b);
+            if let Some(entry) = decoder.get(&candidate) {
+                output.push(char::try_from(*entry).unwrap());
+                candidate = BitVec::new();
             }
         }
         return output;
@@ -137,7 +131,10 @@ mod tests {
         let input = "!!!!!!!!!!😆!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!!!!!!!!!!";
         assert_eq!(
             input,
-            HuffmanEncoder::decode(encoder.decoder, &encoder.encode(input))
+            HuffmanEncoder::decode(
+                encoder.decoder.clone(),
+                encoder.encode(input.chars().into_iter())
+            )
         );
     }
 }

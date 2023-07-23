@@ -1,63 +1,39 @@
 use rmp_serde;
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs};
+use std::fs;
 
 mod application;
 mod encoding;
 
-use application::input::Input;
-use bitvec::vec::BitVec;
-use encoding::{HuffmanEncoder, HuffmanTree};
-
+use application::input::Summary;
+use encoding::huffman;
+use encoding::huffman::{CompressedData, HuffmanEncoder};
 fn main() {
-    let mut input = Input::from_source(std::io::stdin().lock());
+    // Encode
+    let summary = Summary::chars_from_reader(std::io::stdin().lock());
+    let compressed = huffman::compress(summary.input.chars().into_iter(), summary.frequencies);
 
-    let summary = input.process_as_chars();
-
-    let huffman_tree = HuffmanTree::from_frequencies(&summary.frequencies);
-
-    let encoder = HuffmanEncoder::from_huffman_tree(huffman_tree);
-
-    let encoded_text = encoder.encode(&summary.text);
-
-    let encoded_text_size = encoded_text.len() / 8 + {
-        if encoded_text.len() % 8 == 0 {
-            0
-        } else {
-            1
-        }
-    };
-    println!("Original text consumes {} bytes", &summary.text.len());
-    println!("Encoded text consumes {} bytes", encoded_text_size);
-
-    let data = CompressedData {
-        decoder: encoder.decoder,
-        data: encoded_text,
-    };
-
+    let compressed_file_path = "/tmp/compressed_huff.mv";
     rmp_serde::encode::write(
-        &mut fs::File::create("/tmp/compressed_huff.mv").unwrap(),
-        &data,
+        &mut fs::File::create(compressed_file_path).unwrap(),
+        &compressed,
     )
     .unwrap();
+
+    println!("Wrote compressed file to: {}", compressed_file_path);
 
     // Decode
     let deserialized_data: CompressedData<char> =
         rmp_serde::decode::from_read(fs::File::open("/tmp/compressed_huff.mv").unwrap()).unwrap();
 
-    let decoded_text = HuffmanEncoder::decode(deserialized_data.decoder, &deserialized_data.data);
-    println!("Decoded text consumes {} bytes", decoded_text.len());
-
+    let decoded_text = HuffmanEncoder::decode(deserialized_data.decoder, deserialized_data.data);
     println!(
         "Compression ratio: {}%",
-        encoded_text_size * 100 / decoded_text.len()
+        compressed.data.len() / 8 * 100 / decoded_text.len()
     );
 
-    fs::write("/tmp/huffman_decoded.txt", decoded_text).unwrap();
-}
+    let decompressed_file_path = "/tmp/huffman_decoded.txt";
 
-#[derive(Serialize, Deserialize)]
-struct CompressedData<T> {
-    decoder: HashMap<BitVec, T>,
-    data: BitVec,
+    fs::write(decompressed_file_path, decoded_text).unwrap();
+
+    println!("Wrote decompressed file to: {}", decompressed_file_path);
 }

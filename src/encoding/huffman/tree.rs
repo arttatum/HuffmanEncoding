@@ -30,7 +30,6 @@ impl<T: Clone + Eq> PartialOrd for HuffmanTree<T> {
 
 impl<T: Clone + Eq> HuffmanTree<T> {
     pub fn from_frequencies(counts: &HashMap<T, u32>) -> Box<HuffmanTree<T>> {
-        println!("Building Huffman HuffmanTree using token frequency map");
         let mut heap = BinaryHeap::new();
         for (key, value) in counts.iter() {
             heap.push(Box::new(HuffmanTree::Leaf {

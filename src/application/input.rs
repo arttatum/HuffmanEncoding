@@ -1,29 +1,17 @@
 use std::collections::HashMap;
 use std::io::BufRead;
 
-pub struct Input<R> {
-    reader: R,
-}
-
 pub struct Summary<T> {
-    pub text: String,
+    pub input: String,
     pub frequencies: HashMap<T, u32>,
 }
 
-impl<R> Input<R>
-where
-    R: BufRead,
-{
-    pub fn from_source(source: R) -> Self {
-        Input { reader: source }
-    }
-
-    pub fn process_as_chars(&mut self) -> Summary<char> {
-        println!("Reading text from stdin into memory and computing character frequency.");
+impl Summary<char> {
+    pub fn chars_from_reader<R: BufRead>(mut reader: R) -> Self {
         let mut frequencies = HashMap::new();
         let mut line = String::new();
-        let mut text = String::new();
-        while let Ok(n_bytes) = self.reader.read_line(&mut line) {
+        let mut input = String::new();
+        while let Ok(n_bytes) = reader.read_line(&mut line) {
             if n_bytes == 0 {
                 break;
             }
@@ -32,20 +20,21 @@ where
                     .entry(c)
                     .and_modify(|value| *value += 1)
                     .or_insert(1);
-                text.push(c);
+                input.push(c);
             }
             line.clear();
         }
 
-        Summary { text, frequencies }
+        Summary { input, frequencies }
     }
+}
 
-    pub fn process_as_strings(&mut self) -> Summary<String> {
-        println!("Reading text from stdin into memory and computing character frequency.");
+impl Summary<&str> {
+    pub fn strs_from_reader<R: BufRead>(mut reader: R) -> Summary<String> {
         let mut frequencies = HashMap::new();
         let mut line = String::new();
-        let mut text = String::new();
-        while let Ok(n_bytes) = self.reader.read_line(&mut line) {
+        let mut input = String::new();
+        while let Ok(n_bytes) = reader.read_line(&mut line) {
             if n_bytes == 0 {
                 break;
             }
@@ -54,13 +43,13 @@ where
                     .entry(String::from(word))
                     .and_modify(|value| *value += 1)
                     .or_insert(1);
-                text.push_str(word);
+                input.push_str(word);
             }
             line.clear();
         }
 
         Summary {
-            text: String::from(text),
+            input: String::from(input),
             frequencies,
         }
     }
@@ -73,10 +62,9 @@ mod tests {
     #[test]
     fn test_process_as_chars() {
         let input_text = b"Hello world!";
-        let mut input = Input::from_source(&input_text[..]);
-        let char_summary = input.process_as_chars();
+        let char_summary = Summary::chars_from_reader(&input_text[..]);
         assert_eq!(
-            char_summary.text,
+            char_summary.input,
             String::from_utf8(input_text.to_vec()).unwrap()
         );
         assert_eq!(char_summary.frequencies[&'H'], 1);
@@ -92,14 +80,13 @@ mod tests {
     #[test]
     fn test_process_as_strings() {
         let input_text = b"Hello world! Hello ";
-        let mut input = Input::from_source(&input_text[..]);
-        let char_summary = input.process_as_strings();
+        let str_summary = Summary::strs_from_reader(&input_text[..]);
         assert_eq!(
-            char_summary.text,
+            str_summary.input,
             String::from_utf8(input_text.to_vec()).unwrap()
         );
 
-        assert_eq!(char_summary.frequencies["Hello "], 2);
-        assert_eq!(char_summary.frequencies["world! "], 1);
+        assert_eq!(str_summary.frequencies["Hello "], 2);
+        assert_eq!(str_summary.frequencies["world! "], 1);
     }
 }
