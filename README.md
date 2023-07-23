@@ -18,7 +18,7 @@ Encoding:
 
 1) Create the Huffman tree.
 	- This is a binary prefix tree that contains the common patterns in the text.
-	- We construct the tree such that each leaf represents a pattern.
+	- We construct the tree such that each leaf represents a pattern (in this implementation, a char or a string).
 	- The encoding for each pattern is derived from the path from the root to the leaf. Each right traversal appends 1 to encoded string, left appends 0.
 	- We aim to construct a tree where the most frequent nodes have the shortest path from the root, hence the shortest encoding.
 	- In this implementation, we focus on encoding individual letters and ignore the potential of multiple character patterns.

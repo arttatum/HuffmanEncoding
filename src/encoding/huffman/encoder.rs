@@ -13,7 +13,7 @@ where
     T: PartialEq,
 {
     encoder: HashMap<T, BitVec>,
-    decoder: HashMap<BitVec, T>,
+    pub decoder: HashMap<BitVec, T>,
 }
 
 impl<T> HuffmanEncoder<T>
@@ -68,13 +68,13 @@ where
 }
 
 impl HuffmanEncoder<char> {
-    pub fn decode(&self, input: &BitVec) -> String {
+    pub fn decode(decoder: HashMap<BitVec, char>, input: &BitVec) -> String {
         println!("Decoding text");
         let mut output = String::new();
         let mut candidate = BitVec::new();
         for b in input {
             candidate.push(*b);
-            if let Some(entry) = self.decoder.get(&candidate) {
+            if let Some(entry) = decoder.get(&candidate) {
                 output.push(char::try_from(*entry).unwrap());
                 candidate = BitVec::new();
             }
@@ -135,6 +135,9 @@ mod tests {
     fn test_encode_decode_returns_original_input() {
         let encoder = HuffmanEncoder::from_huffman_tree(create_tree());
         let input = "!!!!!!!!!!😆!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!!!!!!!!!!";
-        assert_eq!(input, encoder.decode(&encoder.encode(input)));
+        assert_eq!(
+            input,
+            HuffmanEncoder::decode(encoder.decoder, &encoder.encode(input))
+        );
     }
 }

@@ -1,9 +1,12 @@
-use std::fs;
+use rmp_serde;
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, fs};
 
 mod application;
 mod encoding;
 
 use application::input::Input;
+use bitvec::vec::BitVec;
 use encoding::{HuffmanEncoder, HuffmanTree};
 
 fn main() {
@@ -17,8 +20,6 @@ fn main() {
 
     let encoded_text = encoder.encode(&summary.text);
 
-    let decoded_text = encoder.decode(&encoded_text);
-
     let encoded_text_size = encoded_text.len() / 8 + {
         if encoded_text.len() % 8 == 0 {
             0
@@ -29,6 +30,22 @@ fn main() {
     println!("Original text consumes {} bytes", &summary.text.len());
     println!("Encoded text consumes {} bytes", encoded_text_size);
 
+    let data = CompressedData {
+        decoder: encoder.decoder,
+        data: encoded_text,
+    };
+
+    rmp_serde::encode::write(
+        &mut fs::File::create("/tmp/compressed_huff.mv").unwrap(),
+        &data,
+    )
+    .unwrap();
+
+    // Decode
+    let deserialized_data: CompressedData<char> =
+        rmp_serde::decode::from_read(fs::File::open("/tmp/compressed_huff.mv").unwrap()).unwrap();
+
+    let decoded_text = HuffmanEncoder::decode(deserialized_data.decoder, &deserialized_data.data);
     println!("Decoded text consumes {} bytes", decoded_text.len());
 
     println!(
@@ -37,4 +54,10 @@ fn main() {
     );
 
     fs::write("/tmp/huffman_decoded.txt", decoded_text).unwrap();
+}
+
+#[derive(Serialize, Deserialize)]
+struct CompressedData<T> {
+    decoder: HashMap<BitVec, T>,
+    data: BitVec,
 }
