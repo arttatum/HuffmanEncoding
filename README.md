@@ -1,34 +1,76 @@
 # Huffman coding
 
-An implementation of Huffman coding for the ascii charset.
+An implementation of Huffman coding.
 
 ## What is Huffman coding?
 
-Each ascii character uses 8 bits (1 byte). The principal behind Huffman coding is to assign variable length bit strings to represent different patterns in the text. More common patterns are allocated shorter bit strings, hence reducing the overall size of the string. 
+Common text encoding schemes, such as ascii or utf-8, are not the most memory efficient encodings for the storage of text documents. In fact, given two arbitrary documents, their theoretical optimal encoding schemes are typically very different. Huffman coding is a memory optimised prefix encoding scheme for an individual document.
 
-An important detail, the encoding for any pattern must not be a prefix for any other encoding. Otherwise, there may be ambiguity when decoding the encoded string.
+The principle behind Huffman coding is to assign variable length bit strings to represent different tokens (e.g. chars, strings) in a document. More common tokens are allocated shorter bit string encodings, hence reducing the overall memory required to store the document in its Huffman encoded form. 
 
->For instance, if a=0, b=1, c=10, then 010 could be either: "aba" or "ac"
->
->Whereas if a = 0, b=10, c=11, then 0110 is always "aca", 01011011011 is "abcacac" 
+### Prefix Encoding
 
-## What is the algorithm?
+The bit string encoding for any token must not be a prefix of any other encoding, otherwise there is ambiguity when decoding the encoded string.
 
-Encoding:
+For instance:
 
-1) Create the Huffman tree.
-	- This is a binary prefix tree that contains the common patterns in the text.
-	- We construct the tree such that each leaf represents a pattern (in this implementation, a char or a string).
-	- The encoding for each pattern is derived from the path from the root to the leaf. Each right traversal appends 1 to encoded string, left appends 0.
-	- We aim to construct a tree where the most frequent nodes have the shortest path from the root, hence the shortest encoding.
-	- In this implementation, we focus on encoding individual letters and ignore the potential of multiple character patterns.
+ Given an encoding scheme: a=0, b=1, c=10
 
-2) Use tree to create map of character -> encoding + vice versa.
+ b's encoding is a prefix to c's encoding
 
-3) Use map of character->encoding to create encoded string.
+ As a result, the encoded bit string 010 could be either: "aba" or "ac"
+ 
+ If a = 0, b=10, c=11, there are no prefixes. 0110 is decoded to "aca", 01011011011 to "abcacac", with no ambiguity. 
 
-4) Share encoded string and the map from encoding->character.
+## What is the Huffman coding algorithm?
 
-Decoding:
+Typically, Huffman coding refers to creating an optimal prefix code for a document, in the form of a Huffman Tree.
 
-1) Use the supplied map to decode the encoded string.
+An informal definition of a Huffman Tree is: (1) a binary prefix tree, (2) where leaves contain tokens (3) and leaves with the least depth contain the most common tokens in a document.
+
+The tree can be used to encode the document into a memory efficient binary string. Similarly, the tree can be used to decode the encoded document.
+
+To build the tree:
+
+1) Iterate over tokens in the document to create a frequency map of tokens ([token: count])
+2) Create an empty priority queue (min heap), where higher frequency => higher priority
+3) For each item in the frequency map:
+	
+	a) Create a Huffman Leaf Node (token, count)
+
+   	b) Add it to the priority queue
+
+4) While the number of items in the priority queue is greater than one:
+	
+    a) Remove the top two items from the priority
+   
+    b) Create a new Huffman Tree Internal Node which:
+
+	- References the lower frequency child
+
+	- References the higher frequency child
+
+	- Has a frequency field equal to the sum of both children's frequencies 
+		
+	- Add the new node to the priority queue
+
+8) The single node remaining in the queue is the root of the Huffman Tree
+
+## Intuition
+
+More frequently occurring tokens are added to the Huffman Tree later in the construction process. When they are added, all items added previously (which have lower frequency) must have equal or greater depth in the resultant tree. As a result: 
+- The least frequently occurring tokens have the greatest depth and the longest encodings; 
+- The most frequently occurring tokens have the least depth and the shortest encodings.
+
+This is beneficial, because it means we can assign less memory to encode common tokens.
+
+## Encoding and Decoding
+
+To deduce the mapping from original_token <-> encoded_token:
+
+1) Traverse the Huffman Tree from the root node to the leaf that contains the token.
+2) At each (right|left) traversal, a (0|1) is added to the candidate encoding.
+
+In this solution, the encoded_token<->original_token relationships are saved into two maps to enable:
+- Efficient encoding of large text files, without multiple traversals of the Tree
+- Serialisation of the encoding->original mapping, which is saved with the encoded text, and used by the tool in decode mode.
