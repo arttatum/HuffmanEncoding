@@ -1,4 +1,6 @@
+[] Add Bacon
 [] Sprinkle some Rayon on it
+[] Play with GPU accelleration (explore CUDA interfacing library options)
 [] Benchmarking
 [] Stronger unit / integration tests
 [] Make it a beautiful CLI app
