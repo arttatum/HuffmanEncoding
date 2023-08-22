@@ -2,6 +2,17 @@
 
 An implementation of Huffman coding.
 
+## Quick Start
+
+You will need:
+- Cargo & Rust
+- [Just](https://github.com/casey/just/tree/master) (like GNU Make, but just a command runner)
+- A reasonable UNIX shell
+
+To compress the book Ulysses with huffman encoding, run:
+
+`just compress-a-book`
+
 ## What is Huffman coding?
 
 Common text encoding schemes, such as ascii or utf-8, are not the most memory efficient encodings for the storage of text documents. In fact, given two arbitrary documents, their theoretical optimal encoding schemes are typically very different. Huffman coding is a memory optimised prefix encoding scheme for an individual document.
