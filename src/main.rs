@@ -1,13 +1,11 @@
 use rmp_serde;
 use std::fs;
 
-mod application;
-mod encoding;
+use compressor::application::input::Summary;
+use compressor::encoding::huffman;
+use compressor::encoding::huffman::{CompressedData, HuffmanEncoder};
 
-use application::input::Summary;
-use encoding::huffman;
-use encoding::huffman::{CompressedData, HuffmanEncoder};
-fn main() {
+pub fn main() {
     // Encode
     let summary = Summary::chars_from_reader(std::io::stdin().lock());
     let compressed = huffman::compress(summary.input.chars().into_iter(), summary.frequencies);

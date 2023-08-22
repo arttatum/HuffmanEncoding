@@ -29,8 +29,8 @@ impl Summary<char> {
     }
 }
 
-impl Summary<&str> {
-    pub fn strs_from_reader<R: BufRead>(mut reader: R) -> Summary<String> {
+impl Summary<String> {
+    pub fn strs_from_reader<R: BufRead>(mut reader: R) -> Self {
         let mut frequencies = HashMap::new();
         let mut line = String::new();
         let mut input = String::new();
