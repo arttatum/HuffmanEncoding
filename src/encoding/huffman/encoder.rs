@@ -71,7 +71,7 @@ where
         decoder: HashMap<BitVec, T>,
         input: &Vec<BitVec>,
         tokens_to_line: impl Fn(Vec<T>) -> String + Send + Sync,
-    ) -> String {
+    ) -> Vec<u8> {
         input
             .par_iter()
             .map(|bits| {
@@ -87,6 +87,7 @@ where
                 tokens_to_line(tokens)
             })
             .collect::<String>()
+            .into_bytes()
     }
 }
 
