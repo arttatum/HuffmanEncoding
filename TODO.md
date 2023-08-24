@@ -1,12 +1,7 @@
 [] Add Bacon
 
-[] Play with GPU accelleration (explore CUDA interfacing library options)
+[] GPU accelleration (explore rust<->CUDA interfaces)
 
-[] Stronger unit / integration tests
-
-[] Allow user to specify input channel (file / stdin (default) / network)
-[] Allow user to specify output channel (file (current default...)/ stdout (better default? I don't trust emulators with arbitrary binary...) / network)
-
-[] Think about interfaces more deeply | Rework as required
+[] End to end tests
 
 [] Enhance suite of encoding / compression algorithms implemented
