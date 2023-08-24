@@ -147,7 +147,7 @@ mod tests {
             .collect();
         let encoded_text = encoder.clone().encode(&input_lines, |line| line.chars());
         assert_eq!(
-            input,
+            input.as_bytes(),
             HuffmanEncoder::decode(
                 encoder.decoder.clone(),
                 &encoded_text,
