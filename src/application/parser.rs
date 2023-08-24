@@ -37,7 +37,7 @@ impl TokenParser<char> {
 
 impl TokenParser<String> {
     /// Parse input into `Vec<String>` lines, and compute frequency of each word in the input.
-    pub fn strs_from_reader<R: BufRead>(mut reader: R) -> Self {
+    pub fn words_from_reader<R: BufRead>(mut reader: R) -> Self {
         let mut token_frequencies = HashMap::new();
         let mut line = String::new();
         let mut lines = Vec::new();
@@ -91,7 +91,7 @@ mod tests {
     #[test]
     fn test_process_as_strings() {
         let lines_text = b"Hello world! \n Hello ";
-        let str_summary = TokenParser::strs_from_reader(&lines_text[..]);
+        let str_summary = TokenParser::words_from_reader(&lines_text[..]);
         assert_eq!(str_summary.lines, vec!["Hello world! \n", " Hello "]);
         assert_eq!(str_summary.token_frequencies["Hello "], 2);
         assert_eq!(str_summary.token_frequencies["world! "], 1);

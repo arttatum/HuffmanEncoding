@@ -9,11 +9,9 @@ use std::io::BufReader;
 fn compressor_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("Build Huffman Tree and encode text, using");
 
-    // Reading the whole book twice is grossly ineffecient. Alternatives, such as reading into
-    // memory (Vec<_>) is a better idea typically.
     let str_token_test_data = File::open("./test_data/Ulysses.txt").unwrap();
     let str_reader = BufReader::new(&str_token_test_data);
-    let str_token_input = TokenParser::strs_from_reader(str_reader);
+    let str_token_input = TokenParser::words_from_reader(str_reader);
 
     let char_token_test_data = File::open("./test_data/Ulysses.txt").unwrap();
     let char_reader = BufReader::new(&char_token_test_data);

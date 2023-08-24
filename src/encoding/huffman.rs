@@ -11,8 +11,8 @@ use tree::HuffmanTree;
 /// Compress lines in parallel, using Huffman Coding.
 pub fn compress<'a, T, TExtractor, TokenIterator>(
     lines: &'a Vec<String>,
-    get_tokens_from_line: TExtractor,
     frequencies: HashMap<T, u32>,
+    get_tokens_from_line: TExtractor,
 ) -> CompressedData<T>
 where
     T: Hash + Eq + Clone + Display + Send + Sync + 'a,
