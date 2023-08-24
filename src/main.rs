@@ -24,12 +24,6 @@ enum TokenType {
     Words,
 }
 
-#[derive(clap::ValueEnum, Clone, Debug)]
-enum Source {
-    Stdin,
-    File,
-}
-
 /// A compression and decompression tool.
 ///
 /// The default behaviour is to compress stdin to stdout. Optionally, input and output file paths may be provided.
@@ -105,7 +99,7 @@ pub fn main() {
             }
         }
         Mode::Decompress => {
-            println!("Decompressing text...");
+            info!("Decompressing text...");
             match cli.token_type {
                 TokenType::Chars => {
                     info!("Deserializing from MessagePack...");
@@ -152,5 +146,5 @@ pub fn main() {
         }
     }
 
-    println!("Done!")
+    info!("Done!")
 }
