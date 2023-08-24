@@ -15,5 +15,8 @@ bench:
 
 compress-a-book:
 	cargo build --release
-	cat	./test_data/Ulysses.txt | ./target/release/huffman
+	cat	./test_data/Ulysses.txt | ./target/release/compressor
 	diff ./test_data/Ulysses.txt /tmp/huffman_decoded.txt -s
+
+clean:
+	rm /tmp/huffman_decoded.txt /tmp/compressed_huff.mv

@@ -9,6 +9,8 @@ edition = "2021"
 bitvec = { version = "1", features = ["serde"] }
 rmp-serde = "1"
 serde = { version = "1.0", features = ["derive"] }
+clap = { version = "4.3.24", features = ["derive"] }
+rayon = "1.7"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
