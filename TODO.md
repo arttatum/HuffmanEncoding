@@ -1,5 +1,3 @@
-[] Add Bacon
-
 [] GPU accelleration (explore rust<->CUDA interfaces)
 
 [] End to end tests
