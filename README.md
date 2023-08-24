@@ -1,43 +1,47 @@
 # Huffman coding
 
-An implementation of Huffman coding.
+A text {de,}compression tool inspired by the Unix philosophy.
 
 ## Quick Start
 
 You will need:
-- Cargo & Rust
-- [Just](https://github.com/casey/just/tree/master) (like GNU Make, but just a command runner)
-- A reasonable UNIX shell
+- [Cargo & rustc](https://www.rust-lang.org/tools/install)
+- (Optional, to run recipes) [Just](https://github.com/casey/just/tree/master); like GNU Make, but just a command runner
+- A UNIX shell
 
 To compress the book Ulysses with huffman encoding, run:
 
 `just compress-a-book`
 
+On my computer it takes 7ms.
+
 ## How do I use the CLI?
 
-Run `just build-optimised` to generate the release executable in the `$PROJECT_ROOT/target/release/` directory.
+Run `just release` to run the tests and generate an optimised executable in the `$PROJECT_ROOT/target/release/` directory.
 
-You can either run the executable from this directory `./compressor` or add the directory to your $PATH.
+Alternatively, run `cargo build --release`.
+
+You can either run the executable from the `$PROJECT_ROOT/target/release/` directory or add it to your `$PATH`.
 
 ## What is Huffman coding?
 
 Common text encoding schemes, such as ascii or utf-8, are not the most memory efficient encodings for the storage of text documents. In fact, given two arbitrary documents, their theoretical optimal encoding schemes are typically very different. Huffman coding is a memory optimised prefix encoding scheme for an individual document.
 
-The principle behind Huffman coding is to assign variable length bit strings to represent different tokens (e.g. chars, strings) in a document. More common tokens are allocated shorter bit string encodings, hence reducing the overall memory required to store the document in its Huffman encoded form. 
+The principle behind Huffman coding is to assign variable length bit strings to represent different tokens (e.g. chars, words) in a document. More common tokens are allocated shorter bit string encodings, hence reducing the overall memory required to store the document in its Huffman encoded form. 
 
 ### Prefix Encoding
 
 The bit string encoding for any token must not be a prefix of any other encoding, otherwise there is ambiguity when decoding the encoded string.
 
-For instance:
+For example:
 
- Given an encoding scheme: a=0, b=1, c=10
+    Given an encoding scheme: a=0, b=1, c=10, b's encoding is a prefix to c's encoding.
 
- b's encoding is a prefix to c's encoding
-
- As a result, the encoded bit string 010 could be either: "aba" or "ac"
+    As a result, the encoded bit string 010 could be either: "aba" or "ac"
  
- If a = 0, b=10, c=11, there are no prefixes. 0110 is decoded to "aca", 01011011011 to "abcacac", with no ambiguity. 
+    A prefix encoding scheme such as: a=0, b=10, c=11, ensures no token's encoding prefixes any other. 
+    
+    The bit string: 0110 is deterministically decoded to "aca", 01011011011 to "abcacac", with no ambiguity. 
 
 ## What is the Huffman coding algorithm?
 
@@ -89,5 +93,5 @@ To deduce the mapping from original_token <-> encoded_token:
 2) At each (right|left) traversal, a (0|1) is added to the candidate encoding.
 
 In this solution, the encoded_token<->original_token relationships are saved into two maps to enable:
-- Efficient encoding of large text files, without multiple traversals of the Tree
-- Serialisation of the encoding->original mapping, which is saved with the encoded text, and used by the tool in decode mode.
+- Efficient encoding of large text files, without multiple traversals of the Tree.
+- Serialisation of the encoding->original mapping, which is saved with the encoded text, then used by the tool during decompression.
