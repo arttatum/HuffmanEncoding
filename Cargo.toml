@@ -11,6 +11,8 @@ rmp-serde = "1"
 serde = { version = "1.0", features = ["derive"] }
 clap = { version = "4.3.24", features = ["derive"] }
 rayon = "1.7"
+log = "0.4.20"
+env_logger = "0.10.0"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
