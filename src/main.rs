@@ -3,6 +3,8 @@ use std::{
     fs,
     io::{self, BufReader, Write},
 };
+#[macro_use]
+extern crate log;
 
 use clap::Parser;
 use compressor::{
@@ -60,29 +62,30 @@ struct Args {
 pub fn main() {
     let cli = Args::parse();
 
+    env_logger::init();
     let data = match cli.mode {
         Mode::Compress => {
-            println!("Compressing text...");
+            info!("Compressing text...");
             match cli.token_type {
                 TokenType::Chars => {
-                    println!("Generating char tokens...");
+                    info!("Generating char tokens...");
                     let input_data = match cli.in_file {
                         None => TokenParser::chars_from_reader(std::io::stdin().lock()),
                         Some(s) => TokenParser::chars_from_reader(BufReader::new(
                             fs::File::open(s).unwrap(),
                         )),
                     };
-                    println!("Performing Huffman Compression...");
+                    info!("Performing Huffman Compression...");
                     let compressed = huffman::compress(
                         &input_data.lines,
                         |line| line.chars(),
                         input_data.token_frequencies,
                     );
-                    println!("Encoding into MessagePack format...");
+                    info!("Encoding into MessagePack format...");
                     rmp_serde::encode::to_vec(&compressed).unwrap()
                 }
                 TokenType::Words => {
-                    println!("Generating word tokens...");
+                    info!("Generating word tokens...");
                     let input_data = match cli.in_file {
                         None => TokenParser::strs_from_reader(std::io::stdin().lock()),
                         Some(s) => TokenParser::strs_from_reader(BufReader::new(
@@ -90,30 +93,29 @@ pub fn main() {
                         )),
                     };
 
-                    println!("Performing Huffman Compression...");
+                    info!("Performing Huffman Compression...");
                     let compressed = huffman::compress(
                         &input_data.lines,
                         |line| line.split_inclusive(" ").map(|token| token.to_string()),
                         input_data.token_frequencies,
                     );
-                    println!("Encoding into MessagePack...");
+                    info!("Encoding into MessagePack...");
                     rmp_serde::encode::to_vec(&compressed).unwrap()
                 }
             }
         }
         Mode::Decompress => {
-            let input_file_path = match cli.in_file {
-                Some(s) => s,
-                None => panic!("Please provide the filepath of the file to decompress."),
-            };
             println!("Decompressing text...");
             match cli.token_type {
                 TokenType::Chars => {
-                    println!("Deserializing from MessagePack...");
-                    let deserialized_data: CompressedData<char> =
-                        rmp_serde::decode::from_read(fs::File::open(input_file_path).unwrap())
-                            .unwrap();
-                    println!("Decoding text...");
+                    info!("Deserializing from MessagePack...");
+                    let deserialized_data: CompressedData<char> = match cli.in_file {
+                        Some(s) => {
+                            rmp_serde::decode::from_read(fs::File::open(s).unwrap()).unwrap()
+                        }
+                        None => rmp_serde::decode::from_read(std::io::stdin().lock()).unwrap(),
+                    };
+                    info!("Decoding text...");
                     HuffmanEncoder::decode(
                         deserialized_data.decoder,
                         &deserialized_data.data,
@@ -121,12 +123,15 @@ pub fn main() {
                     )
                 }
                 TokenType::Words => {
-                    println!("Deserializing from MessagePack...");
-                    let deserialized_data: CompressedData<String> =
-                        rmp_serde::decode::from_read(fs::File::open(input_file_path).unwrap())
-                            .unwrap();
+                    info!("Deserializing from MessagePack...");
 
-                    println!("Decoding text...");
+                    let deserialized_data: CompressedData<String> = match cli.in_file {
+                        Some(s) => {
+                            rmp_serde::decode::from_read(fs::File::open(s).unwrap()).unwrap()
+                        }
+                        None => rmp_serde::decode::from_read(std::io::stdin().lock()).unwrap(),
+                    };
+                    info!("Decoding text...");
                     HuffmanEncoder::decode(
                         deserialized_data.decoder,
                         &deserialized_data.data,
@@ -138,10 +143,11 @@ pub fn main() {
     };
     match cli.out_file {
         Some(s) => {
-            println!("Writing to file: {s}");
+            info!("Writing to file: {s}");
             fs::write(s, data).unwrap();
         }
         None => {
+            info!("Writing to stdout.");
             io::stdout().write(&data).unwrap();
         }
     }
