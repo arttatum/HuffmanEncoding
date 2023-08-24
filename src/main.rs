@@ -1,4 +1,3 @@
-use rmp_serde;
 use std::{
     fs,
     io::{self, BufReader, Write},
@@ -70,7 +69,7 @@ fn compress(
             info!("Performing Huffman Compression...");
             let compressed =
                 huffman::compress(&input_data.lines, input_data.token_frequencies, |line| {
-                    line.split_inclusive(" ").map(|token| token.to_string())
+                    line.split_inclusive(' ').map(|token| token.to_string())
                 });
 
             info!("Encoding into MessagePack...");

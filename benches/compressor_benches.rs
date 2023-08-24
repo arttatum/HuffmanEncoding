@@ -22,9 +22,7 @@ fn compressor_benchmark(c: &mut Criterion) {
             let tree = HuffmanTree::from_frequencies(&str_token_input.token_frequencies);
             let encoder = HuffmanEncoder::from_huffman_tree(tree);
             encoder.encode(&str_token_input.lines, |line| {
-                line.split_inclusive(" ")
-                    .map(|a| String::from(a))
-                    .into_iter()
+                line.split_inclusive(' ').map(String::from)
             });
         })
     });
@@ -33,7 +31,7 @@ fn compressor_benchmark(c: &mut Criterion) {
         b.iter(|| {
             let tree = HuffmanTree::from_frequencies(&char_token_input.token_frequencies);
             let encoder = HuffmanEncoder::from_huffman_tree(tree);
-            encoder.encode(&str_token_input.lines, |line| line.chars().into_iter());
+            encoder.encode(&str_token_input.lines, |line| line.chars());
         })
     });
 }

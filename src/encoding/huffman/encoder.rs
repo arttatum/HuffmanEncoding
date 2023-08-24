@@ -103,9 +103,9 @@ mod tests {
         let tree = HuffmanTree::from_frequencies(&counts);
         let encoder = HuffmanEncoder::from_huffman_tree(tree);
 
-        let expected_bits_for_a = vec![false, false];
-        let expected_bits_for_exclaim = vec![true];
-        let expected_bits_for_lols = vec![false, true];
+        let expected_bits_for_a = [false, false];
+        let expected_bits_for_exclaim = [true];
+        let expected_bits_for_lols = [false, true];
 
         let bits_for_a = encoder.encoder.get(&'a').unwrap();
         assert_eq!(bits_for_a.len(), 2);
@@ -143,10 +143,7 @@ mod tests {
         let tree = HuffmanTree::from_frequencies(&counts);
         let encoder = HuffmanEncoder::from_huffman_tree(tree);
         let input = "!!hi!\na!😆\n12aA|Z";
-        let input_lines: Vec<String> = input
-            .split_inclusive("\n")
-            .map(|s| String::from(s))
-            .collect();
+        let input_lines: Vec<String> = input.split_inclusive('\n').map(String::from).collect();
         let encoded_text = encoder.clone().encode(&input_lines, |line| line.chars());
         assert_eq!(
             input.as_bytes(),

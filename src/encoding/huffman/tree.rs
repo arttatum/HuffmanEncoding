@@ -33,11 +33,11 @@ impl<T: Clone + Eq> HuffmanTree<T> {
     /// Build a Huffman Tree, given the frequency of tokens in a given text.
     pub fn from_frequencies(counts: &HashMap<T, u32>) -> Box<HuffmanTree<T>> {
         let mut heap: BinaryHeap<Box<HuffmanTree<T>>> = counts
-            .into_iter()
+            .iter()
             .map(|(key, value)| {
                 Box::new(HuffmanTree::Leaf {
                     token: key.clone(),
-                    count: value.clone(),
+                    count: *value,
                 })
             })
             .collect();

@@ -18,7 +18,7 @@ impl TokenParser<char> {
             if n_bytes == 0 {
                 break;
             }
-            for c in line.chars().into_iter() {
+            for c in line.chars() {
                 token_frequencies
                     .entry(c)
                     .and_modify(|value| *value += 1)
@@ -45,7 +45,7 @@ impl TokenParser<String> {
             if n_bytes == 0 {
                 break;
             }
-            for word in line.split_inclusive(" ").into_iter() {
+            for word in line.split_inclusive(' ') {
                 token_frequencies
                     .entry(String::from(word))
                     .and_modify(|value| *value += 1)
