@@ -1,16 +1,12 @@
 use crate::encoding::huffman::tree::HuffmanTree;
-use bitvec::prelude::*;
-use core::fmt::Display;
-use std::borrow::BorrowMut;
-use std::collections::HashMap;
-use std::hash::Hash;
+use bit_vec::BitVec;
+use rayon::prelude::*;
+use std::{collections::HashMap, hash::Hash};
 
 #[derive(Clone)]
 pub struct HuffmanEncoder<T>
 where
-    T: Hash,
-    T: Eq,
-    T: PartialEq,
+    T: Hash + Eq + Sync,
 {
     pub encoder: HashMap<T, BitVec>,
     pub decoder: HashMap<BitVec, T>,
@@ -18,25 +14,16 @@ where
 
 impl<T> HuffmanEncoder<T>
 where
-    T: Hash,
-    T: Eq,
-    T: PartialEq,
-    T: Clone,
-    T: Display,
+    T: Hash + Eq + Clone + Send + Sync,
 {
     pub fn from_huffman_tree(tree: Box<HuffmanTree<T>>) -> Self {
         let mut encoder = HashMap::new();
         let mut decoder = HashMap::new();
-        HuffmanEncoder::get_encoding_from_node(
-            tree,
-            BitVec::new(),
-            encoder.borrow_mut(),
-            decoder.borrow_mut(),
-        );
+        HuffmanEncoder::get_encoding_from_node(tree, BitVec::new(), &mut encoder, &mut decoder);
         HuffmanEncoder { encoder, decoder }
     }
 
-    fn get_encoding_from_node(
+    fn get_encoding_from_node<'a>(
         current_node: Box<HuffmanTree<T>>,
         encoding: BitVec,
         encoder: &mut HashMap<T, BitVec>,
@@ -59,34 +46,47 @@ where
         }
     }
 
-    pub fn encode<I>(self, input_iter: I) -> BitVec
+    pub fn encode<'a, TokenIterator>(
+        self,
+        input: &'a Vec<String>,
+        get_tokens_from_line: impl Fn(&'a str) -> TokenIterator + Send + Sync,
+    ) -> Vec<BitVec>
     where
-        I: Iterator<Item = T>,
+        TokenIterator: Iterator<Item = T>,
     {
-        let mut output = BitVec::new();
-        for b in input_iter {
-            if let Some(encoding) = self.encoder.get(&b) {
-                for bb in encoding {
-                    output.push(*bb);
-                }
-            }
-        }
-        return output;
+        input
+            .par_iter()
+            .map(|line| {
+                get_tokens_from_line(line)
+                    .map(|token| self.encoder.get(&token).unwrap().clone())
+                    .fold(BitVec::new(), |mut vec1, vec2| {
+                        vec1.extend(vec2);
+                        vec1
+                    })
+            })
+            .collect()
     }
-}
 
-impl HuffmanEncoder<char> {
-    pub fn decode(decoder: HashMap<BitVec, char>, input: BitVec) -> String {
-        let mut output = String::new();
-        let mut candidate = BitVec::new();
-        for b in input {
-            candidate.push(b);
-            if let Some(entry) = decoder.get(&candidate) {
-                output.push(char::try_from(*entry).unwrap());
-                candidate = BitVec::new();
-            }
-        }
-        return output;
+    pub fn decode(
+        decoder: HashMap<BitVec, T>,
+        input: &Vec<BitVec>,
+        tokens_to_line: impl Fn(Vec<T>) -> String + Send + Sync,
+    ) -> String {
+        input
+            .par_iter()
+            .map(|bits| {
+                let mut candidate = BitVec::new();
+                let mut tokens = Vec::new();
+                for bit in bits {
+                    candidate.push(bit);
+                    if let Some(entry) = decoder.get(&candidate) {
+                        tokens.push((*entry).clone());
+                        candidate = BitVec::new();
+                    }
+                }
+                tokens_to_line(tokens)
+            })
+            .collect::<String>()
     }
 }
 
@@ -94,18 +94,15 @@ impl HuffmanEncoder<char> {
 mod tests {
     use super::*;
 
-    fn create_tree() -> Box<HuffmanTree<char>> {
-        let counts = HashMap::from([('a', 10), ('!', 38), ('😆', 12)]);
-        HuffmanTree::from_frequencies(&counts)
-    }
-
     #[test]
     fn test_from_huffman_tree() {
-        let encoder = HuffmanEncoder::from_huffman_tree(create_tree());
+        let counts = HashMap::from([('a', 10), ('!', 38), ('😆', 12)]);
+        let tree = HuffmanTree::from_frequencies(&counts);
+        let encoder = HuffmanEncoder::from_huffman_tree(tree);
 
-        let expected_bits_for_a = bitvec![0, 0];
-        let expected_bits_for_exclaim = bitvec![1];
-        let expected_bits_for_lols = bitvec![0, 1];
+        let expected_bits_for_a = vec![false, false];
+        let expected_bits_for_exclaim = vec![true];
+        let expected_bits_for_lols = vec![false, true];
 
         let bits_for_a = encoder.encoder.get(&'a').unwrap();
         assert_eq!(bits_for_a.len(), 2);
@@ -127,13 +124,33 @@ mod tests {
 
     #[test]
     fn test_encode_decode_returns_original_input() {
-        let encoder = HuffmanEncoder::from_huffman_tree(create_tree());
-        let input = "!!!!!!!!!!😆!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!a!😆!!!!!!!!!!";
+        let counts = HashMap::from([
+            ('h', 1),
+            ('i', 1),
+            ('1', 1),
+            ('2', 1),
+            ('A', 1),
+            ('|', 1),
+            ('Z', 1),
+            ('a', 2),
+            ('!', 4),
+            ('😆', 1),
+            ('\n', 1),
+        ]);
+        let tree = HuffmanTree::from_frequencies(&counts);
+        let encoder = HuffmanEncoder::from_huffman_tree(tree);
+        let input = "!!hi!\na!😆\n12aA|Z";
+        let input_lines: Vec<String> = input
+            .split_inclusive("\n")
+            .map(|s| String::from(s))
+            .collect();
+        let encoded_text = encoder.clone().encode(&input_lines, |line| line.chars());
         assert_eq!(
             input,
             HuffmanEncoder::decode(
                 encoder.decoder.clone(),
-                encoder.encode(input.chars().into_iter())
+                &encoded_text,
+                |tokens: Vec<char>| tokens.into_iter().collect::<String>()
             )
         );
     }

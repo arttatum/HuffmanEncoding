@@ -1,4 +1,4 @@
-use compressor::application::input::Summary;
+use compressor::application::parser::TokenParser;
 use compressor::encoding::huffman::tree::HuffmanTree;
 use compressor::encoding::huffman::HuffmanEncoder;
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -13,31 +13,29 @@ fn compressor_benchmark(c: &mut Criterion) {
     // memory (Vec<_>) is a better idea typically.
     let str_token_test_data = File::open("./test_data/Ulysses.txt").unwrap();
     let str_reader = BufReader::new(&str_token_test_data);
-    let str_token_input = Summary::strs_from_reader(str_reader);
+    let str_token_input = TokenParser::strs_from_reader(str_reader);
 
     let char_token_test_data = File::open("./test_data/Ulysses.txt").unwrap();
     let char_reader = BufReader::new(&char_token_test_data);
-    let char_token_input = Summary::chars_from_reader(char_reader);
+    let char_token_input = TokenParser::chars_from_reader(char_reader);
 
     group.bench_function("word tokens", |b| {
         b.iter(|| {
-            let tree = HuffmanTree::from_frequencies(&str_token_input.frequencies);
+            let tree = HuffmanTree::from_frequencies(&str_token_input.token_frequencies);
             let encoder = HuffmanEncoder::from_huffman_tree(tree);
-            encoder.encode(
-                str_token_input
-                    .input
-                    .split_inclusive(" ")
+            encoder.encode(&str_token_input.lines, |line| {
+                line.split_inclusive(" ")
                     .map(|a| String::from(a))
-                    .into_iter(),
-            );
+                    .into_iter()
+            });
         })
     });
 
     group.bench_function("char tokens", |b| {
         b.iter(|| {
-            let tree = HuffmanTree::from_frequencies(&char_token_input.frequencies);
+            let tree = HuffmanTree::from_frequencies(&char_token_input.token_frequencies);
             let encoder = HuffmanEncoder::from_huffman_tree(tree);
-            encoder.encode(str_token_input.input.chars().into_iter());
+            encoder.encode(&str_token_input.lines, |line| line.chars().into_iter());
         })
     });
 }

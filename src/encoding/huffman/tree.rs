@@ -3,8 +3,8 @@ use std::{
     hash::Hash,
 };
 
-#[derive(Clone, PartialEq, Eq)]
-pub enum HuffmanTree<T: Clone> {
+#[derive(PartialEq, Eq)]
+pub enum HuffmanTree<T> {
     Leaf {
         token: T,
         count: u32,
@@ -30,13 +30,15 @@ impl<T: Clone + Eq> PartialOrd for HuffmanTree<T> {
 
 impl<T: Clone + Eq> HuffmanTree<T> {
     pub fn from_frequencies(counts: &HashMap<T, u32>) -> Box<HuffmanTree<T>> {
-        let mut heap = BinaryHeap::new();
-        for (key, value) in counts.iter() {
-            heap.push(Box::new(HuffmanTree::Leaf {
-                token: key.clone(),
-                count: value.clone(),
-            }));
-        }
+        let mut heap: BinaryHeap<Box<HuffmanTree<T>>> = counts
+            .into_iter()
+            .map(|(key, value)| {
+                Box::new(HuffmanTree::Leaf {
+                    token: key.clone(),
+                    count: value.clone(),
+                })
+            })
+            .collect();
 
         while heap.len() > 1 {
             let smaller_node = heap.pop().unwrap();
