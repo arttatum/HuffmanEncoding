@@ -13,6 +13,12 @@ To compress the book Ulysses with huffman encoding, run:
 
 `just compress-a-book`
 
+## How do I use the CLI?
+
+Run `just build-optimised` to generate the release executable in the `$PROJECT_ROOT/target/release/` directory.
+
+You can either run the executable from this directory `./compressor` or add the directory to your $PATH.
+
 ## What is Huffman coding?
 
 Common text encoding schemes, such as ascii or utf-8, are not the most memory efficient encodings for the storage of text documents. In fact, given two arbitrary documents, their theoretical optimal encoding schemes are typically very different. Huffman coding is a memory optimised prefix encoding scheme for an individual document.
