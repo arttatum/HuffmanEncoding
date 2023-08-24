@@ -36,8 +36,8 @@ enum Source {
 ///
 /// During compression, the text is broken into 'tokens', either chars or words. Depending on the workload, compression ratio and speed may be better for one choice or the other. The default token type is 'chars'.
 ///
-/// To decompress a file: compressor --mode=decompress --file=$PATH_TO_COMPRESSED_FILE
-/// --token-type=$TOKEN_TYPE_USED_DURING_COMPRESSION
+/// To decompress a file, set --mode=decompress and ensure the same token type is selected as was
+/// used in compression.
 ///
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about)]
