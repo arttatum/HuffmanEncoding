@@ -7,8 +7,10 @@ use std::{
 extern crate log;
 
 use compressor::{
-    application::parser::TokenParser,
-    cli::{Args, Mode, Parser, TokenType},
+    application::{
+        cli::{Args, Mode, Parser, TokenType},
+        parser::TokenParser,
+    },
     encoding::huffman::{self, CompressedData, HuffmanEncoder},
 };
 
@@ -28,12 +30,14 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                             TokenParser::chars_from_reader(BufReader::new(fs::File::open(s)?))
                         }
                     };
+
                     info!("Performing Huffman Compression...");
                     let compressed = huffman::compress(
                         &input_data.lines,
                         |line| line.chars(),
                         input_data.token_frequencies,
                     );
+
                     info!("Encoding into MessagePack format...");
                     rmp_serde::encode::to_vec(&compressed)?
                 }
@@ -62,11 +66,14 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             match cli.token_type {
                 TokenType::Chars => {
                     info!("Deserializing from MessagePack...");
+
                     let deserialized_data: CompressedData<char> = match cli.in_file {
                         Some(s) => rmp_serde::decode::from_read(fs::File::open(s)?)?,
                         None => rmp_serde::decode::from_read(std::io::stdin().lock())?,
                     };
+
                     info!("Decoding text...");
+
                     HuffmanEncoder::decode(
                         deserialized_data.decoder,
                         &deserialized_data.data,
@@ -80,7 +87,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Some(s) => rmp_serde::decode::from_read(fs::File::open(s)?)?,
                         None => rmp_serde::decode::from_read(std::io::stdin().lock())?,
                     };
+
                     info!("Decoding text...");
+
                     HuffmanEncoder::decode(
                         deserialized_data.decoder,
                         &deserialized_data.data,

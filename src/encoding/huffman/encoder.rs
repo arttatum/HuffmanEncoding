@@ -46,15 +46,16 @@ where
         }
     }
 
+    /// Use encoding derived from huffman tree to encode the lines.
     pub fn encode<'a, TokenIterator>(
         self,
-        input: &'a Vec<String>,
+        lines: &'a Vec<String>,
         get_tokens_from_line: impl Fn(&'a str) -> TokenIterator + Send + Sync,
     ) -> Vec<BitVec>
     where
         TokenIterator: Iterator<Item = T>,
     {
-        input
+        lines
             .par_iter()
             .map(|line| {
                 get_tokens_from_line(line)
@@ -67,6 +68,7 @@ where
             .collect()
     }
 
+    /// Use encoding derived from huffman tree to decode the lines.
     pub fn decode(
         decoder: HashMap<BitVec, T>,
         input: &Vec<BitVec>,

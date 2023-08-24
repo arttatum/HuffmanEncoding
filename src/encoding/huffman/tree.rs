@@ -3,6 +3,7 @@ use std::{
     hash::Hash,
 };
 
+/// A data structure which can be used to derive the optimal prefix code for a given text.
 #[derive(PartialEq, Eq)]
 pub enum HuffmanTree<T> {
     Leaf {
@@ -29,6 +30,7 @@ impl<T: Clone + Eq> PartialOrd for HuffmanTree<T> {
 }
 
 impl<T: Clone + Eq> HuffmanTree<T> {
+    /// Build a Huffman Tree, given the frequency of tokens in a given text.
     pub fn from_frequencies(counts: &HashMap<T, u32>) -> Box<HuffmanTree<T>> {
         let mut heap: BinaryHeap<Box<HuffmanTree<T>>> = counts
             .into_iter()

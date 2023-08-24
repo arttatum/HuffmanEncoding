@@ -8,13 +8,14 @@ use rayon::prelude::*;
 use std::{collections::HashMap, fmt::Display, hash::Hash};
 use tree::HuffmanTree;
 
+/// Compress lines in parallel, using Huffman Coding.
 pub fn compress<'a, T, TExtractor, TokenIterator>(
     lines: &'a Vec<String>,
     get_tokens_from_line: TExtractor,
     frequencies: HashMap<T, u32>,
 ) -> CompressedData<T>
 where
-    T: Hash + Eq + Clone + Display + Send + Sync,
+    T: Hash + Eq + Clone + Display + Send + Sync + 'a,
     TExtractor: Fn(&'a str) -> TokenIterator + Send + Sync,
     TokenIterator: Iterator<Item = T>,
 {

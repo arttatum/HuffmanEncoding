@@ -1,3 +1,4 @@
+/// Module containing input parsing logic and CLI configuration.
 pub mod application;
-pub mod cli;
+/// Module containing
 pub mod encoding;

@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use std::io::BufRead;
 
+/// Parses input from implementor of BufRead.
+/// Computes frequency of tokens (chars / words) and stores entire input in memory.
 pub struct TokenParser<T> {
     pub lines: Vec<String>,
     pub token_frequencies: HashMap<T, u32>,
 }
 
 impl TokenParser<char> {
+    /// Parse input into `Vec<String>` lines, and compute frequency of each char in the input.
     pub fn chars_from_reader<R: BufRead>(mut reader: R) -> Self {
         let mut token_frequencies = HashMap::new();
         let mut line = String::new();
@@ -33,6 +36,7 @@ impl TokenParser<char> {
 }
 
 impl TokenParser<String> {
+    /// Parse input into `Vec<String>` lines, and compute frequency of each word in the input.
     pub fn strs_from_reader<R: BufRead>(mut reader: R) -> Self {
         let mut token_frequencies = HashMap::new();
         let mut line = String::new();
